@@ -49,6 +49,11 @@
 
 ## ADR-008: Visual direction
 
-- **Status:** Proposed
-- **Context:** User requested more information before choosing.
-- **Decision:** Pending choice among Night Match / Matchday Press / Tactical Board — see `docs/VISUAL_DIRECTION.md`.
+- **Status:** Accepted (2026-08-15)
+- **Decision:** **Option A — Night Match** (`docs/VISUAL_DIRECTION.md`).
+- **Look:** Deep pitch green → near-black gradient, condensed athletic brand type for **Gameplan**, electric lime accent, full-bleed match imagery, restrained motion.
+- **Tokens (initial):**
+  - `--bg: #07140f` → `#020403`
+  - `--brand: #f4f7f2`
+  - `--accent: #b8f53a`
+  - `--muted: #8a9a90`

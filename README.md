@@ -4,7 +4,7 @@ Soccer data hub for the top 5 European leagues — ingest, correlate, analyze, c
 
 ## Status
 
-Decisions locked for stack, seasons, and auth. **Visual direction** and **API keys** still needed before Phase 0 build.
+Decisions locked for stack, seasons, auth, and **Night Match** visual. Add API keys to start live ingest.
 
 See **[docs/PLAN.md](docs/PLAN.md)**.
 
@@ -34,7 +34,11 @@ Seasons (start years): **2023, 2024, 2025**
 ## Before we scaffold
 
 1. Create tokens per [docs/API_KEYS.md](docs/API_KEYS.md) and add them as secrets
-2. Pick a visual direction: **A / B / C** in [docs/VISUAL_DIRECTION.md](docs/VISUAL_DIRECTION.md)
+2. ~~Pick a visual direction~~ → **A Night Match** locked
+
+## App
+
+Phase 0 lives in `apps/web` (Next.js).
 
 ## Local secrets
 

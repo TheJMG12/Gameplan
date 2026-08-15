@@ -311,18 +311,18 @@ All public GETs are rate-limited; secrets never exposed to the client.
 | API keys | How-to in `docs/API_KEYS.md` — user registering |
 | Seasons | **Last 3** (2023, 2024, 2025 start years) |
 | Auth | **Clerk** — public browse + signed-in saves |
-| Visual | **Open** — choose A/B/C in `docs/VISUAL_DIRECTION.md` |
+| Visual | **A — Night Match** (accepted) |
 
 ---
 
 ## Immediate next implementation slice
 
-When moving from plan → build (after API keys + visual pick):
+When moving from plan → build (API keys unlock live data; mock works now):
 
-1. Scaffold Next.js app + Clerk + DB schema
-2. API-Football client (quota-aware) + football-data.org client + cache
-3. Ingest top-5 leagues for seasons **2023–2025** (batched)
-4. Ship league hub UI (standings + fixtures) in chosen visual direction
-5. Add RSS news strip + auth-gated “save comparison”
+1. ~~Scaffold Next.js app + Night Match theme~~ ✅ (`apps/web`)
+2. API-Football + football-data clients with mock fallback ✅
+3. Ingest top-5 leagues for seasons **2023–2025** into Postgres (next: Neon + cron)
+4. Clerk auth wiring (next)
+5. RSS news strip (next)
 
 Do **not** start XGBoost or radar charts until Phase 0–1 exit criteria pass.

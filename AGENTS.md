@@ -26,7 +26,8 @@ Soccer data hub for the top 5 European leagues: ingest, correlate, analyze, comp
 - Python under `python/` for ingestion batch jobs and prediction training
 - Deploy on Vercel
 - API keys guide: `docs/API_KEYS.md`
-- Visual options: `docs/VISUAL_DIRECTION.md` (choose before UI polish)
+- Visual options: `docs/VISUAL_DIRECTION.md` — **Night Match (A) accepted**
+- App lives in `apps/web`
 
 If a change conflicts with `docs/PLAN.md`, update the plan or add an ADR in `docs/DECISIONS.md`.
 
