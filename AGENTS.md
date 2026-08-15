@@ -11,17 +11,22 @@ Soccer data hub for the top 5 European leagues: ingest, correlate, analyze, comp
 ## Product constraints
 
 - **Top 5 only until explicitly expanded:** Premier League, La Liga, Bundesliga, Serie A, Ligue 1
+- **Last 3 seasons:** start years `2023,2024,2025` (`INGEST_SEASONS`)
 - **Data quality before ML:** fixtures/standings/news/compare ship before ensemble models
 - **Canonical IDs:** never assume provider IDs are global; use `external_ids` mapping
 - **No scraping by default:** prefer licensed/free APIs; respect ToS and rate limits
 - **Secrets:** never commit API keys; use `.env` / Vercel env from `.env.example`
+- **Auth:** Clerk — public browse OK; saves/prefs/admin require sign-in
 
 ## Preferred stack
 
 - Next.js App Router + TypeScript + Tailwind (UI + BFF)
+- Clerk auth
 - Neon Postgres + Upstash Redis
 - Python under `python/` for ingestion batch jobs and prediction training
 - Deploy on Vercel
+- API keys guide: `docs/API_KEYS.md`
+- Visual options: `docs/VISUAL_DIRECTION.md` (choose before UI polish)
 
 If a change conflicts with `docs/PLAN.md`, update the plan or add an ADR in `docs/DECISIONS.md`.
 

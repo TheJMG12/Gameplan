@@ -20,14 +20,15 @@ This document is the working architecture and delivery plan. It deliberately avo
 | Analyze games | Box score + form context | Shot maps, xG timelines |
 | Correlate sources (canonical IDs) | Dual-ID map | Full entity resolution |
 | Predict match outcomes | Elo / Poisson baseline | Ensemble + scorelines |
-| Multi-source ingestion | football-data.org + RSS | API-Football, Sportmonks, open xG |
+| Multi-source ingestion | football-data.org + API-Football + RSS | Sportmonks, open xG |
+| Auth (Clerk) | Sign-in; save comparisons / prefs | Orgs, social graph |
+| Historical window | Last **3 seasons** (2023–2025 start years) | Deeper archive if paid |
 
 ### Out of scope (for now)
 
 - Betting odds arbitrage / tipster product framing
 - Scraping sites that disallow it (FBref/Understat only if ToS + rate limits allow, or via licensed APIs)
 - Mobile native apps
-- Auth / multi-tenant accounts (add when personalization is needed)
 
 ---
 
@@ -62,8 +63,11 @@ Three layers remain correct; implementation should stay **MVP-thin**.
 - **Cache:** Upstash Redis for API response caching
 - **Ingest / train:** Python scripts + optional FastAPI or Vercel cron hitting Node ingest first; graduate to a Python service when models need it
 - **Hosting:** Vercel (Fluid Compute / Node), cron for scheduled pulls
+- **Auth:** Clerk (`@clerk/nextjs`) via Vercel Marketplace
 
 This keeps the draft’s domain split (ingestion / analytics / prediction) without forcing Celery on day one.
+
+**Confirmed (2026-08-15):** Next.js-first; last 3 seasons; Clerk auth. Visual direction still open (`docs/VISUAL_DIRECTION.md`).
 
 ---
 
@@ -71,12 +75,12 @@ This keeps the draft’s domain split (ingestion / analytics / prediction) witho
 
 ### Primary (MVP)
 
-1. **football-data.org** — free tier covers all five top leagues; clean fixtures/standings/teams. Best bootstrap source.
-2. **RSS news** — ESPN, Sky Sports, and league-official feeds where available. Filter/tag by league keywords + team names.
+1. **API-Football** — required for **last 3 seasons**, player stats, richer endpoints. Free tier is quota-tight (≈100 req/day); cache + batch ingest. Signup guide: `docs/API_KEYS.md`.
+2. **football-data.org** — clean competition/standings/fixtures supplement for top 5; free tier often **current-season limited**. Still useful as a second correlated source.
+3. **RSS news** — ESPN, Sky Sports, and league-official feeds where available. Filter/tag by league keywords + team names.
 
-### Secondary (when API keys exist)
+### Secondary (later)
 
-3. **API-Football** — broader coverage, live scores, player stats, odds hooks. Use behind a quota-aware client.
 4. **Sportmonks** — paid; prioritize when xG / advanced metrics are product-critical.
 
 ### Supplementary (careful)
@@ -299,24 +303,26 @@ All public GETs are rate-limited; secrets never exposed to the client.
 
 ---
 
-## Open decisions (resolve before heavy build)
+## Decisions status
 
-1. **Confirm stack:** Next.js + Neon (recommended) vs. FastAPI-first?
-2. **API keys available now?** football-data.org token and/or API-Football key
-3. **Season focus:** current season only for MVP, or N historical seasons for training?
-4. **Auth needed?** public read-only vs. saved comparisons later
-5. **Design direction:** dark pitch aesthetic vs. clean editorial sports media look (avoid generic purple SaaS)
+| Topic | Status |
+|---|---|
+| Stack | **Next.js-first** (accepted) |
+| API keys | How-to in `docs/API_KEYS.md` — user registering |
+| Seasons | **Last 3** (2023, 2024, 2025 start years) |
+| Auth | **Clerk** — public browse + signed-in saves |
+| Visual | **Open** — choose A/B/C in `docs/VISUAL_DIRECTION.md` |
 
 ---
 
 ## Immediate next implementation slice
 
-When moving from plan → build:
+When moving from plan → build (after API keys + visual pick):
 
-1. Scaffold Next.js app + DB schema + `.env.example`
-2. Implement football-data.org client with cache
-3. Seed top-5 leagues and ingest current-season fixtures/standings
-4. Ship league hub UI (standings + fixtures)
-5. Add RSS news strip
+1. Scaffold Next.js app + Clerk + DB schema
+2. API-Football client (quota-aware) + football-data.org client + cache
+3. Ingest top-5 leagues for seasons **2023–2025** (batched)
+4. Ship league hub UI (standings + fixtures) in chosen visual direction
+5. Add RSS news strip + auth-gated “save comparison”
 
 Do **not** start XGBoost or radar charts until Phase 0–1 exit criteria pass.

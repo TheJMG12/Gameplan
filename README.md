@@ -4,22 +4,22 @@ Soccer data hub for the top 5 European leagues — ingest, correlate, analyze, c
 
 ## Status
 
-Planning complete. See **[docs/PLAN.md](docs/PLAN.md)** for architecture, phases, and open decisions.
+Decisions locked for stack, seasons, and auth. **Visual direction** and **API keys** still needed before Phase 0 build.
 
-## Top 5 leagues
+See **[docs/PLAN.md](docs/PLAN.md)**.
 
-- Premier League
-- La Liga
-- Bundesliga
-- Serie A
-- Ligue 1
+## Top 5 leagues · last 3 seasons
 
-## Stack (planned)
+Premier League · La Liga · Bundesliga · Serie A · Ligue 1  
+Seasons (start years): **2023, 2024, 2025**
+
+## Stack
 
 - **App:** Next.js (App Router) + TypeScript + Tailwind
+- **Auth:** Clerk
 - **Data:** Neon Postgres, Upstash Redis
 - **Jobs / ML:** Python (`python/`)
-- **Sources:** football-data.org (MVP) → API-Football / advanced metrics later; RSS for news
+- **Sources:** API-Football (multi-season) + football-data.org + RSS
 
 ## Docs
 
@@ -27,14 +27,14 @@ Planning complete. See **[docs/PLAN.md](docs/PLAN.md)** for architecture, phases
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | Product vision, architecture, phases |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records |
+| [docs/API_KEYS.md](docs/API_KEYS.md) | **Where to get API tokens** |
+| [docs/VISUAL_DIRECTION.md](docs/VISUAL_DIRECTION.md) | Design options A / B / C |
 | [AGENTS.md](AGENTS.md) | Guidance for Cursor agents |
 
-## Next build slice
+## Before we scaffold
 
-1. Scaffold the Next.js app + database schema
-2. football-data.org client with caching
-3. Ingest current-season fixtures & standings for the top 5
-4. League hub UI + RSS news strip
+1. Create tokens per [docs/API_KEYS.md](docs/API_KEYS.md) and add them as secrets
+2. Pick a visual direction: **A / B / C** in [docs/VISUAL_DIRECTION.md](docs/VISUAL_DIRECTION.md)
 
 ## Local secrets
 

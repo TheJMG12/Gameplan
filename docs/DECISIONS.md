@@ -27,3 +27,28 @@
 - **Context:** Need league updates without a paid news API.
 - **Decision:** Aggregate public RSS feeds; normalize, dedupe, and tag to leagues/teams.
 - **Consequences:** Variable feed reliability; no guaranteed full-text article bodies.
+
+## ADR-005: Stack confirmation
+
+- **Status:** Accepted (2026-08-15)
+- **Decision:** Next.js-first (App Router) + Neon + Redis + Python jobs. FastAPI-first rejected for MVP.
+
+## ADR-006: Historical window = last 3 seasons
+
+- **Status:** Accepted (2026-08-15)
+- **Context:** User wants last 3 seasons for analysis/training. football-data.org free tier is often current-season-only.
+- **Decision:** Target seasons labeled by start year: **2023, 2024, 2025** (i.e. 2023/24 → 2025/26 as of Aug 2026). Use **API-Football as the historical + multi-season source**; football-data.org remains useful for clean current competition metadata/standings where available.
+- **Consequences:** `API_FOOTBALL_KEY` is effectively required for the 3-season goal. Free tier (100 req/day) forces batched, cached ingest. Verify per-league season availability on first pull; fall back to whatever recent seasons the free plan returns and document gaps.
+
+## ADR-007: Authentication
+
+- **Status:** Accepted (2026-08-15)
+- **Decision:** Use **Clerk** (`@clerk/nextjs`) via Vercel Marketplace for sign-in/sign-up.
+- **MVP auth uses:** protect saved comparisons, prediction preferences, and admin/ingest tools; browse leagues/fixtures can stay publicly readable with optional sign-in.
+- **Consequences:** Need Clerk env keys; middleware on protected routes; user id linked to saved entities in Postgres.
+
+## ADR-008: Visual direction
+
+- **Status:** Proposed
+- **Context:** User requested more information before choosing.
+- **Decision:** Pending choice among Night Match / Matchday Press / Tactical Board — see `docs/VISUAL_DIRECTION.md`.
