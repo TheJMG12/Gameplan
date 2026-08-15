@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #07140f;
+  --bg-deep: #020403;
+  --brand: #f4f7f2;
+  --accent: #b8f53a;
+  --accent-dim: color-mix(in oklab, var(--accent) 35%, transparent);
+  --muted: #8a9a90;
+  --line: color-mix(in oklab, var(--brand) 12%, transparent);
+  --surface: color-mix(in oklab, var(--brand) 4%, var(--bg));
+  --danger: #ff5c5c;
+  --background: var(--bg);
+  --foreground: var(--brand);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-accent: var(--accent);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-surface: var(--surface);
+  --color-bg-deep: var(--bg-deep);
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--bg-deep);
+  color: var(--brand);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg-deep);
+}
+
+@keyframes ambient-drift {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translate3d(2%, -1%, 0) scale(1.04);
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes accent-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--accent-dim);
+  }
+  50% {
+    box-shadow: 0 0 0 10px transparent;
+  }
+}
+
+.ambient-light {
+  animation: ambient-drift 14s ease-in-out infinite;
+}
+
+.rise-in {
+  animation: rise-in 0.7s ease-out both;
+}
+
+.rise-in-delay-1 {
+  animation-delay: 0.12s;
+}
+
+.rise-in-delay-2 {
+  animation-delay: 0.24s;
+}
+
+.rise-in-delay-3 {
+  animation-delay: 0.36s;
+}
+
+.cta-pulse:hover {
+  animation: accent-pulse 1.2s ease-out;
+}

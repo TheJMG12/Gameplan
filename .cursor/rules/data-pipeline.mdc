@@ -1,0 +1,19 @@
+---
+description: Data pipeline and ML rules
+globs:
+  - python/**/*
+  - scripts/**/*
+  - data/**/*
+  - notebooks/**/*
+---
+
+# Data pipeline rules
+
+- Ingest on a schedule (cron/job), not on every user request
+- Cache: live ~15–30s, fixtures ~5–15m, standings ~1h, historical ~24h, news ~15–30m
+- Always map provider IDs through `external_ids` to Gameplan canonical IDs
+- Raw JSON under `data/raw/`; processed artifacts under `data/processed/`
+- Models under `data/models/` with versioned filenames and metadata
+- Prediction models must ship with backtest metrics; baseline Elo/Poisson before ensembles
+- Do not scrape sources that disallow it; prefer APIs / licensed open data
+- Log rate-limit remaining and quota usage on every provider call batch

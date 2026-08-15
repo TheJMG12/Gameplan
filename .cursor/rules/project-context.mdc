@@ -1,0 +1,26 @@
+---
+description: Gameplan product context for all agents
+globs:
+alwaysApply: true
+---
+
+# Gameplan project context
+
+Gameplan is a soccer data hub focused on the top 5 European leagues (PL, La Liga, Bundesliga, Serie A, Ligue 1).
+
+## Goals
+- Multi-source ingest with canonical entity IDs
+- League hub: fixtures, standings, news
+- Compare players and teams
+- Analyze matches
+- Predict outcomes (baseline models first)
+
+## Source of truth
+- Follow `docs/PLAN.md` and `AGENTS.md`
+- Record stack/product decisions in `docs/DECISIONS.md`
+
+## Priorities
+1. Correct, cached data ingestion
+2. Usable league/match/compare UI
+3. Measured prediction baselines
+4. Advanced metrics / multi-source merge

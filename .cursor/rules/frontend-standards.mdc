@@ -1,0 +1,18 @@
+---
+description: Frontend UI standards for Gameplan
+globs:
+  - apps/**/*.tsx
+  - apps/**/*.css
+  - frontend/**/*
+---
+
+# Frontend standards
+
+- Functional React components + TypeScript
+- Brand **Gameplan** as a hero-level signal on marketing/league hub surfaces
+- One job per section; avoid card-heavy dashboards unless cards wrap interactions
+- Prefer expressive typography; avoid generic Inter/Roboto-only SaaS look
+- Use CSS variables for the visual system; avoid purple-on-white AI-default themes
+- Motion: intentional, few, hierarchy-supporting
+- Charts only when they clarify comparison/analysis (not decoration)
+- Mobile and desktop must both work for league and match views
