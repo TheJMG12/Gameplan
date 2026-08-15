@@ -1,0 +1,18 @@
+---
+description: Backend and data-service standards
+globs:
+  - apps/**/lib/**/*
+  - apps/**/app/api/**/*
+  - python/**/*
+  - scripts/**/*
+---
+
+# Backend standards
+
+- All external HTTP goes through provider adapters with retry, backoff, and quota tracking
+- Validate inputs/outputs with Zod (TS) or Pydantic (Python)
+- Prefer idempotent upserts keyed by canonical or `(source, external_id)`
+- Store raw provider payloads for replay when ingesting
+- Never log API keys or full secrets
+- Public write/ingest endpoints must be cron-protected or admin-only
+- Use ORM parameterized queries only (Drizzle/Prisma/SQLAlchemy)
