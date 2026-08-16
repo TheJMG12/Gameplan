@@ -10,11 +10,11 @@ Soccer data hub for the top 5 European leagues: ingest, correlate, analyze, comp
 
 ## Product constraints
 
-- **Top 5 only until explicitly expanded:** Premier League, La Liga, Bundesliga, Serie A, Ligue 1
-- **Last 3 seasons:** start years `2023,2024,2025` (`INGEST_SEASONS`)
+- **Top 5 + UEFA + World Cup:** PL/PD/BL1/SA/FL1, CL/EL/ECL, WC
+- **Last 3 club seasons:** start years `2023,2024,2025` (`INGEST_SEASONS`); WC years `2022,2026`
 - **Data quality before ML:** fixtures/standings/news/compare ship before ensemble models
 - **Canonical IDs:** never assume provider IDs are global; use `external_ids` mapping
-- **No scraping by default:** prefer licensed/free APIs; respect ToS and rate limits
+- **No scraping by default:** soccerdata is optional/off-cron; prefer APIs; StatsBomb open-data OK with attribution
 - **Secrets:** never commit API keys; use `.env` / Vercel env from `.env.example`
 - **Auth:** Clerk — public browse OK; saves/prefs/admin require sign-in
 

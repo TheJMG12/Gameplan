@@ -1,5 +1,5 @@
 import { getEnv, hasApiFootballKey } from "@/lib/env";
-import type { LeagueDefinition } from "@/lib/domain/leagues";
+import type { CompetitionDefinition } from "@/lib/domain/leagues";
 import type { Fixture, Standings } from "@/lib/domain/types";
 import { FixtureSchema, StandingsSchema } from "@/lib/domain/types";
 
@@ -75,7 +75,7 @@ function mapStatus(short: string | undefined): Fixture["status"] {
 }
 
 export async function fetchStandingsFromApiFootball(
-  league: LeagueDefinition,
+  competition: CompetitionDefinition,
   season: number,
 ): Promise<Standings> {
   const response = await apiFootballFetch<
@@ -99,12 +99,12 @@ export async function fetchStandingsFromApiFootball(
         >;
       };
     }>
-  >("/standings", { league: league.apiFootballId, season });
+  >("/standings", { league: competition.apiFootballId, season });
 
   const table = response[0]?.league.standings[0] ?? [];
 
   return StandingsSchema.parse({
-    leagueCode: league.code,
+    leagueCode: competition.code,
     season,
     updatedAt: new Date().toISOString(),
     source: "api-football",
@@ -129,7 +129,7 @@ export async function fetchStandingsFromApiFootball(
 }
 
 export async function fetchFixturesFromApiFootball(
-  league: LeagueDefinition,
+  competition: CompetitionDefinition,
   season: number,
 ): Promise<Fixture[]> {
   const response = await apiFootballFetch<
@@ -146,12 +146,12 @@ export async function fetchFixturesFromApiFootball(
       };
       goals: { home: number | null; away: number | null };
     }>
-  >("/fixtures", { league: league.apiFootballId, season });
+  >("/fixtures", { league: competition.apiFootballId, season });
 
   return response.map((item) =>
     FixtureSchema.parse({
       id: `af-${item.fixture.id}`,
-      leagueCode: league.code,
+      leagueCode: competition.code,
       season,
       utcDate: item.fixture.date,
       status: mapStatus(item.fixture.status.short),

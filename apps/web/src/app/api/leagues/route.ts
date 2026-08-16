@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { TOP_5_LEAGUES } from "@/lib/domain/leagues";
+import { COMPETITIONS, INGEST_SEASONS, WORLD_CUP_SEASONS } from "@/lib/domain/leagues";
 
 export async function GET() {
   return NextResponse.json({
-    leagues: TOP_5_LEAGUES,
-    seasons: [2023, 2024, 2025],
+    competitions: COMPETITIONS,
+    seasons: {
+      european: INGEST_SEASONS,
+      worldCup: WORLD_CUP_SEASONS,
+    },
   });
 }

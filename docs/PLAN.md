@@ -12,7 +12,9 @@ This document is the working architecture and delivery plan. It deliberately avo
 
 | Capability | MVP | Later |
 |---|---|---|
-| Top 5 leagues: PL, La Liga, Bundesliga, Serie A, Ligue 1 | Yes | Expand competitions |
+| Top 5 leagues: PL, La Liga, Bundesliga, Serie A, Ligue 1 | Yes | Expand domestic |
+| UEFA CL / EL / Conference League | Yes | Deeper cup stages UX |
+| FIFA World Cup | Yes (2022, 2026) | Qualifiers |
 | Fixtures, results, standings | Yes | Live minute-by-minute |
 | Team & player profiles | Yes | Career history, transfers |
 | News & updates (league-scoped) | Yes | Sentiment / entity tagging |
@@ -20,7 +22,7 @@ This document is the working architecture and delivery plan. It deliberately avo
 | Analyze games | Box score + form context | Shot maps, xG timelines |
 | Correlate sources (canonical IDs) | Dual-ID map | Full entity resolution |
 | Predict match outcomes | Elo / Poisson baseline | Ensemble + scorelines |
-| Multi-source ingestion | football-data.org + API-Football + RSS | Sportmonks, open xG |
+| Multi-source ingestion | API-Football + football-data.org + RSS | soccerdata*, StatsBomb open-data*, Sportmonks |
 | Auth (Clerk) | Sign-in; save comparisons / prefs | Orgs, social graph |
 | Historical window | Last **3 seasons** (2023–2025 start years) | Deeper archive if paid |
 

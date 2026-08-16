@@ -47,13 +47,10 @@
 - **MVP auth uses:** protect saved comparisons, prediction preferences, and admin/ingest tools; browse leagues/fixtures can stay publicly readable with optional sign-in.
 - **Consequences:** Need Clerk env keys; middleware on protected routes; user id linked to saved entities in Postgres.
 
-## ADR-008: Visual direction
+## ADR-009: Competition expansion + multi-source ingest
 
-- **Status:** Accepted (2026-08-15)
-- **Decision:** **Option A — Night Match** (`docs/VISUAL_DIRECTION.md`).
-- **Look:** Deep pitch green → near-black gradient, condensed athletic brand type for **Gameplan**, electric lime accent, full-bleed match imagery, restrained motion.
-- **Tokens (initial):**
-  - `--bg: #07140f` → `#020403`
-  - `--brand: #f4f7f2`
-  - `--accent: #b8f53a`
-  - `--muted: #8a9a90`
+- **Status:** Accepted (2026-08-16)
+- **Decision:** Expand beyond top 5 to include **UEFA Champions League, Europa League, Conference League**, and **FIFA World Cup**. Ingest from **both** API-Football and football-data.org into `data/raw/{source}/…`.
+- **Season rules:** Club competitions → 2023–2025; World Cup → tournament years 2022 & 2026.
+- **Supplementary:** Optional Python bridges for [soccerdata](https://github.com/probberechts/soccerdata) (ToS-sensitive scrapers) and [StatsBomb open-data](https://github.com/statsbomb/open-data) (research events; cite StatsBomb).
+- **Consequences:** Higher quota pressure on free tiers — batch ingest with delays; UI must tolerate empty cup standings.

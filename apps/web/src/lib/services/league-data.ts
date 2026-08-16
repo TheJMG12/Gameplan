@@ -1,7 +1,8 @@
 import {
   currentSeasonStartYear,
-  getLeagueBySlug,
-  type LeagueDefinition,
+  defaultSeasonFor,
+  getCompetitionBySlug,
+  type CompetitionDefinition,
 } from "@/lib/domain/leagues";
 import type { Fixture, Standings } from "@/lib/domain/types";
 import { hasApiFootballKey, hasFootballDataToken } from "@/lib/env";
@@ -13,73 +14,97 @@ import {
   fetchFixturesFromFootballData,
   fetchStandingsFromFootballData,
 } from "@/lib/providers/football-data";
-import { mockFixtures, mockStandings } from "@/lib/providers/mock";
+import { emptyStandings, mockFixtures, mockStandings } from "@/lib/providers/mock";
 
 export type LeagueBundle = {
-  league: LeagueDefinition;
+  league: CompetitionDefinition;
   season: number;
   standings: Standings;
   fixtures: Fixture[];
   usingMock: boolean;
+  sourcesAttempted: string[];
 };
 
-async function loadStandings(league: LeagueDefinition, season: number): Promise<Standings> {
+async function loadStandings(
+  competition: CompetitionDefinition,
+  season: number,
+  attempted: string[],
+): Promise<Standings> {
   if (hasApiFootballKey()) {
+    attempted.push("api-football");
     try {
-      return await fetchStandingsFromApiFootball(league, season);
+      return await fetchStandingsFromApiFootball(competition, season);
     } catch (error) {
       console.warn("[standings] api-football failed", error);
     }
   }
 
-  if (hasFootballDataToken()) {
+  if (hasFootballDataToken() && competition.footballDataCode) {
+    attempted.push("football-data");
     try {
-      return await fetchStandingsFromFootballData(league, season);
+      return await fetchStandingsFromFootballData(competition, season);
     } catch (error) {
       console.warn("[standings] football-data failed", error);
     }
   }
 
-  return mockStandings(league.code, season);
+  // Cups / WC may lack a flat table; prefer empty over misleading mock for non-domestic.
+  if (competition.kind !== "domestic") {
+    return emptyStandings(competition.code, season);
+  }
+
+  return mockStandings(competition.code, season);
 }
 
-async function loadFixtures(league: LeagueDefinition, season: number): Promise<Fixture[]> {
+async function loadFixtures(
+  competition: CompetitionDefinition,
+  season: number,
+  attempted: string[],
+): Promise<Fixture[]> {
   if (hasApiFootballKey()) {
+    attempted.push("api-football");
     try {
-      return await fetchFixturesFromApiFootball(league, season);
+      return await fetchFixturesFromApiFootball(competition, season);
     } catch (error) {
       console.warn("[fixtures] api-football failed", error);
     }
   }
 
-  if (hasFootballDataToken()) {
+  if (hasFootballDataToken() && competition.footballDataCode) {
+    attempted.push("football-data");
     try {
-      return await fetchFixturesFromFootballData(league, season);
+      return await fetchFixturesFromFootballData(competition, season);
     } catch (error) {
       console.warn("[fixtures] football-data failed", error);
     }
   }
 
-  return mockFixtures(league.code, season);
+  return mockFixtures(competition.code, season);
 }
 
 export async function getLeagueBundle(
   slug: string,
-  season: number = currentSeasonStartYear(),
+  season?: number,
 ): Promise<LeagueBundle | null> {
-  const league = getLeagueBySlug(slug);
-  if (!league) return null;
+  const competition = getCompetitionBySlug(slug);
+  if (!competition) return null;
+
+  const resolvedSeason = season ?? defaultSeasonFor(competition);
+  const sourcesAttempted: string[] = [];
 
   const [standings, fixtures] = await Promise.all([
-    loadStandings(league, season),
-    loadFixtures(league, season),
+    loadStandings(competition, resolvedSeason, sourcesAttempted),
+    loadFixtures(competition, resolvedSeason, sourcesAttempted),
   ]);
 
   return {
-    league,
-    season,
+    league: competition,
+    season: resolvedSeason,
     standings,
     fixtures,
     usingMock: standings.source === "mock" || fixtures.some((fixture) => fixture.source === "mock"),
+    sourcesAttempted: [...new Set(sourcesAttempted)],
   };
 }
+
+export { currentSeasonStartYear };
