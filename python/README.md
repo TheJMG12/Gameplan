@@ -1,19 +1,25 @@
-# Python jobs
+# Python ingest (required)
 
-Enrichment + research ingest (not the primary live path).
+Part of the full Gameplan pipeline — **not optional**.
 
 ```bash
 cd python
-python -m venv .venv
+python3 -m venv .venv
 source .venv/bin/activate
 pip install -e .
-
-# StatsBomb open competitions list → data/raw/statsbomb
-python -m ingestion.statsbomb_open --list-competitions
-
-# Optional soccerdata (install extra first)
-pip install -e '.[soccerdata]'
-python -m ingestion.soccerdata_bridge
+python -m ingestion.run_all
 ```
 
-Primary dual-source ingest lives in `apps/web` (`npm run ingest`). See `docs/DATA_SOURCES.md`.
+Or from repo root (also runs Node operational ingest first):
+
+```bash
+npm run ingest:all
+```
+
+| Module | Owns |
+|---|---|
+| `soccerdata_bridge` | ClubElo, Understat (top-5 xG), FBref (non-overlapping advanced), SoFIFA |
+| `statsbomb_open` | Event streams + lineups for relevant open competitions |
+| `run_all` | Orchestrates both |
+
+See `docs/DATA_SOURCES.md` for the anti-overlap matrix.

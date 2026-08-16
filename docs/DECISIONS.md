@@ -50,7 +50,17 @@
 ## ADR-009: Competition expansion + multi-source ingest
 
 - **Status:** Accepted (2026-08-16)
-- **Decision:** Expand beyond top 5 to include **UEFA Champions League, Europa League, Conference League**, and **FIFA World Cup**. Ingest from **both** API-Football and football-data.org into `data/raw/{source}/…`.
+- **Decision:** Expand beyond top 5 to include **UEFA Champions League, Europa League, Conference League**, and **FIFA World Cup**.
 - **Season rules:** Club competitions → 2023–2025; World Cup → tournament years 2022 & 2026.
-- **Supplementary:** Optional Python bridges for [soccerdata](https://github.com/probberechts/soccerdata) (ToS-sensitive scrapers) and [StatsBomb open-data](https://github.com/statsbomb/open-data) (research events; cite StatsBomb).
 - **Consequences:** Higher quota pressure on free tiers — batch ingest with delays; UI must tolerate empty cup standings.
+
+## ADR-010: Non-overlapping multi-source ownership
+
+- **Status:** Accepted (2026-08-16)
+- **Context:** User wants maximum ingestion including soccerdata + StatsBomb, without redundant datasets.
+- **Decision:** Every dataset has one authoritative owner (see `docs/DATA_SOURCES.md`):
+  - API-Football → fixtures & standings
+  - football-data.org → ID crosswalk only
+  - soccerdata ClubElo / Understat / FBref / SoFIFA → Elo, top-5 xG, non-overlapping advanced stats, player attributes
+  - StatsBomb open-data → event streams & lineups
+- **Consequences:** Full pipeline is `npm run ingest:all`. football-data no longer dumps fixtures/standings. ESPN/Sofascore/WhoScored/MatchHistory scrapers stay excluded as redundant.

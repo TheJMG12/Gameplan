@@ -5,16 +5,11 @@ import {
   seasonsForCompetition,
   type CompetitionDefinition,
 } from "@/lib/domain/leagues";
-import type { Fixture, Standings } from "@/lib/domain/types";
-import { hasApiFootballKey, hasFootballDataToken } from "@/lib/env";
+import { getEnv, hasApiFootballKey, hasFootballDataToken } from "@/lib/env";
 import {
   fetchFixturesFromApiFootball,
   fetchStandingsFromApiFootball,
 } from "@/lib/providers/api-football";
-import {
-  fetchFixturesFromFootballData,
-  fetchStandingsFromFootballData,
-} from "@/lib/providers/football-data";
 
 export type IngestSource = "api-football" | "football-data";
 
@@ -22,28 +17,23 @@ export type IngestJobResult = {
   competition: string;
   season: number;
   source: IngestSource;
+  kind: "fixtures" | "standings" | "crosswalk";
   ok: boolean;
   fixtures?: number;
   standingsRows?: number;
+  teams?: number;
   error?: string;
   rawPath?: string;
 };
 
 function rawRoot() {
-  // Keep path statically scoped so Turbopack does not trace the whole monorepo.
   return path.join(/*turbopackIgnore: true*/ process.cwd(), "..", "..", "data", "raw");
 }
 
-async function writeRaw(
-  source: IngestSource,
-  competition: CompetitionDefinition,
-  season: number,
-  kind: "fixtures" | "standings",
-  payload: unknown,
-): Promise<string> {
-  const dir = path.join(/*turbopackIgnore: true*/ rawRoot(), source, competition.code, String(season));
+async function writeJson(relativeParts: string[], payload: unknown): Promise<string> {
+  const dir = path.join(/*turbopackIgnore: true*/ rawRoot(), ...relativeParts.slice(0, -1));
   await mkdir(dir, { recursive: true });
-  const filePath = path.join(/*turbopackIgnore: true*/ dir, `${kind}.json`);
+  const filePath = path.join(/*turbopackIgnore: true*/ dir, relativeParts[relativeParts.length - 1]!);
   await writeFile(filePath, JSON.stringify(payload, null, 2), "utf8");
   return filePath;
 }
@@ -52,7 +42,11 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function ingestFromApiFootball(
+/**
+ * Authoritative: fixtures + standings (API-Football only).
+ * See docs/DATA_SOURCES.md — do not also dump these from football-data.org.
+ */
+async function ingestOperationalFromApiFootball(
   competition: CompetitionDefinition,
   season: number,
 ): Promise<IngestJobResult[]> {
@@ -60,11 +54,15 @@ async function ingestFromApiFootball(
 
   try {
     const standings = await fetchStandingsFromApiFootball(competition, season);
-    const rawPath = await writeRaw("api-football", competition, season, "standings", standings);
+    const rawPath = await writeJson(
+      ["api-football", competition.code, String(season), "standings.json"],
+      standings,
+    );
     results.push({
       competition: competition.code,
       season,
       source: "api-football",
+      kind: "standings",
       ok: true,
       standingsRows: standings.table.length,
       rawPath,
@@ -74,6 +72,7 @@ async function ingestFromApiFootball(
       competition: competition.code,
       season,
       source: "api-football",
+      kind: "standings",
       ok: false,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -83,11 +82,15 @@ async function ingestFromApiFootball(
 
   try {
     const fixtures = await fetchFixturesFromApiFootball(competition, season);
-    const rawPath = await writeRaw("api-football", competition, season, "fixtures", fixtures);
+    const rawPath = await writeJson(
+      ["api-football", competition.code, String(season), "fixtures.json"],
+      fixtures,
+    );
     results.push({
       competition: competition.code,
       season,
       source: "api-football",
+      kind: "fixtures",
       ok: true,
       fixtures: fixtures.length,
       rawPath,
@@ -97,6 +100,7 @@ async function ingestFromApiFootball(
       competition: competition.code,
       season,
       source: "api-football",
+      kind: "fixtures",
       ok: false,
       error: error instanceof Error ? error.message : String(error),
     });
@@ -105,80 +109,117 @@ async function ingestFromApiFootball(
   return results;
 }
 
-async function ingestFromFootballData(
+/**
+ * Authoritative: ID crosswalk only (no fixtures / standings duplication).
+ */
+async function ingestCrosswalkFromFootballData(
   competition: CompetitionDefinition,
   season: number,
-): Promise<IngestJobResult[]> {
+): Promise<IngestJobResult> {
   if (!competition.footballDataCode) {
-    return [
-      {
-        competition: competition.code,
-        season,
-        source: "football-data",
-        ok: false,
-        error: "No football-data.org mapping",
+    return {
+      competition: competition.code,
+      season,
+      source: "football-data",
+      kind: "crosswalk",
+      ok: false,
+      error: "No football-data.org mapping",
+    };
+  }
+
+  if (!hasFootballDataToken()) {
+    return {
+      competition: competition.code,
+      season,
+      source: "football-data",
+      kind: "crosswalk",
+      ok: false,
+      error: "FOOTBALL_DATA_API_TOKEN missing",
+    };
+  }
+
+  const code = competition.footballDataCode;
+  const headers = { "X-Auth-Token": getEnv().footballDataToken };
+
+  try {
+    const [competitionRes, teamsRes] = await Promise.all([
+      fetch(`https://api.football-data.org/v4/competitions/${code}`, { headers }),
+      fetch(`https://api.football-data.org/v4/competitions/${code}/teams?season=${season}`, {
+        headers,
+      }),
+    ]);
+
+    if (!competitionRes.ok) {
+      throw new Error(`competition meta HTTP ${competitionRes.status}`);
+    }
+    if (!teamsRes.ok) {
+      throw new Error(`teams HTTP ${teamsRes.status}`);
+    }
+
+    const competitionMeta = await competitionRes.json();
+    const teamsPayload = (await teamsRes.json()) as {
+      teams?: Array<{ id: number; name: string; shortName?: string; tla?: string; crest?: string }>;
+    };
+
+    const crosswalk = {
+      source: "football-data",
+      role: "crosswalk-only",
+      gameplanCode: competition.code,
+      season,
+      competition: {
+        id: competitionMeta.id,
+        code: competitionMeta.code,
+        name: competitionMeta.name,
       },
-    ];
-  }
+      teams: (teamsPayload.teams ?? []).map((team) => ({
+        footballDataId: team.id,
+        name: team.name,
+        shortName: team.shortName,
+        tla: team.tla,
+        crest: team.crest,
+      })),
+    };
 
-  const results: IngestJobResult[] = [];
+    const rawPath = await writeJson(
+      ["football-data", competition.code, String(season), "crosswalk.json"],
+      crosswalk,
+    );
 
-  try {
-    const standings = await fetchStandingsFromFootballData(competition, season);
-    const rawPath = await writeRaw("football-data", competition, season, "standings", standings);
-    results.push({
+    await sleep(6500);
+
+    return {
       competition: competition.code,
       season,
       source: "football-data",
+      kind: "crosswalk",
       ok: true,
-      standingsRows: standings.table.length,
+      teams: crosswalk.teams.length,
       rawPath,
-    });
+    };
   } catch (error) {
-    results.push({
+    return {
       competition: competition.code,
       season,
       source: "football-data",
+      kind: "crosswalk",
       ok: false,
       error: error instanceof Error ? error.message : String(error),
-    });
+    };
   }
-
-  await sleep(6500); // free tier ~10 req/min
-
-  try {
-    const fixtures = await fetchFixturesFromFootballData(competition, season);
-    const rawPath = await writeRaw("football-data", competition, season, "fixtures", fixtures);
-    results.push({
-      competition: competition.code,
-      season,
-      source: "football-data",
-      ok: true,
-      fixtures: fixtures.length,
-      rawPath,
-    });
-  } catch (error) {
-    results.push({
-      competition: competition.code,
-      season,
-      source: "football-data",
-      ok: false,
-      error: error instanceof Error ? error.message : String(error),
-    });
-  }
-
-  return results;
 }
 
 export type RunIngestOptions = {
+  /** Defaults: api-football operational + football-data crosswalk when keys exist. */
   sources?: IngestSource[];
   competitionCodes?: string[];
   seasons?: number[];
-  /** Cap work for free-tier smoke tests. */
   maxJobs?: number;
 };
 
-export async function runDualSourceIngest(
+/** @deprecated use runOperationalIngest */
+export const runDualSourceIngest = runOperationalIngest;
+
+export async function runOperationalIngest(
   options: RunIngestOptions = {},
 ): Promise<{ results: IngestJobResult[]; summary: Record<string, number> }> {
   const sources = options.sources ?? [
@@ -202,17 +243,21 @@ export async function runDualSourceIngest(
   for (const competition of competitions) {
     const seasons = (options.seasons ?? seasonsForCompetition(competition)).filter(Boolean);
     for (const season of seasons) {
-      for (const source of sources) {
+      if (sources.includes("api-football")) {
         if (options.maxJobs !== undefined && jobs >= options.maxJobs) {
           return summarize(results);
         }
         jobs += 1;
-        if (source === "api-football") {
-          results.push(...(await ingestFromApiFootball(competition, season)));
-          await sleep(1200);
-        } else {
-          results.push(...(await ingestFromFootballData(competition, season)));
+        results.push(...(await ingestOperationalFromApiFootball(competition, season)));
+        await sleep(1200);
+      }
+
+      if (sources.includes("football-data")) {
+        if (options.maxJobs !== undefined && jobs >= options.maxJobs) {
+          return summarize(results);
         }
+        jobs += 1;
+        results.push(await ingestCrosswalkFromFootballData(competition, season));
       }
     }
   }
@@ -227,14 +272,7 @@ function summarize(results: IngestJobResult[]) {
     failed: results.filter((r) => !r.ok).length,
     fixtures: results.reduce((sum, r) => sum + (r.fixtures ?? 0), 0),
     standingsRows: results.reduce((sum, r) => sum + (r.standingsRows ?? 0), 0),
+    crosswalkTeams: results.reduce((sum, r) => sum + (r.teams ?? 0), 0),
   };
   return { results, summary };
 }
-
-export type DualSourceBundle = {
-  competition: CompetitionDefinition;
-  season: number;
-  standings: Standings;
-  fixtures: Fixture[];
-  sourcesUsed: IngestSource[];
-};

@@ -1,15 +1,24 @@
-# Data sources
+# Data sources — authoritative ownership (no overlap)
 
-Gameplan ingests from multiple providers into a shared domain model, then correlates via `external_ids`.
+Gameplan ingests **all** of these sources on every full run. Each dataset has **one owner**. Other providers must not rewrite the same facts.
 
-## Live / scheduled providers (primary)
+## Authority matrix
 
-| Source | Env var | Best for | Notes |
+| Dataset | Authoritative source | Stored under | Not ingested from |
 |---|---|---|---|
-| **API-Football** | `API_FOOTBALL_KEY` | Multi-season fixtures, standings, players | ~100 req/day on free — batch + cache |
-| **football-data.org** | `FOOTBALL_DATA_API_TOKEN` | Clean competition metadata, standings | Free often current-season limited |
+| Fixtures / results / schedules | **API-Football** | `data/raw/api-football/{CODE}/{season}/fixtures.json` | football-data, FBref schedule, ESPN, Sofascore, Understat schedule |
+| League / group standings | **API-Football** | `…/standings.json` | football-data standings |
+| Competition + team ID crosswalk | **football-data.org** | `data/raw/football-data/{CODE}/{season}/crosswalk.json` | (IDs only — no fixtures/tables) |
+| Club Elo ratings | **soccerdata ClubElo** | `data/raw/soccerdata/clubelo/` | — |
+| Top-5 match xG / shots | **soccerdata Understat** | `data/raw/soccerdata/understat/` | FBref shooting (for top 5) |
+| Big-5 non-xG advanced season stats (passing, defense, possession, standard) | **soccerdata FBref** | `data/raw/soccerdata/fbref/big5/` | Understat (different metrics) |
+| UEFA cup advanced season stats | **soccerdata FBref** | `data/raw/soccerdata/fbref/uefa/` | Understat (no UEFA coverage) |
+| Player attribute ratings | **soccerdata SoFIFA** | `data/raw/soccerdata/sofifa/` | — |
+| Event-level match streams + lineups | **StatsBomb open-data** | `data/raw/statsbomb/` | API-Football events for the same open matches |
 
-### Competitions in scope
+Correlation across sources happens later via `external_ids` (name/date matching), never by duplicating the same table from two APIs.
+
+## Competitions in scope
 
 | Code | Competition | API-Football ID | football-data code |
 |---|---|---|---|
@@ -23,50 +32,31 @@ Gameplan ingests from multiple providers into a shared domain model, then correl
 | ECL | UEFA Conference League | 848 | **UCL** (their code) |
 | WC | FIFA World Cup | 1 | WC |
 
-Club competitions use seasons **2023–2025**. World Cup uses tournament years **2022, 2026**.
+Club seasons **2023–2025**. World Cup **2022, 2026**.
 
-## Supplementary / research providers
+## Intentionally excluded (redundant)
 
-### [probberechts/soccerdata](https://github.com/probberechts/soccerdata)
+- football-data.org fixtures & standings dumps  
+- soccerdata ESPN / Sofascore / WhoScored / MatchHistory (scores & fixtures overlap API-Football)  
+- FBref `schedule` / fixture lists  
+- Understat schedule-only pulls  
 
-Python scrapers for Club Elo, ESPN, FBref, Football-Data.co.uk, Sofascore, SoFIFA, Understat, WhoScored.
-
-- Wired under `python/ingestion/soccerdata_bridge.py` as an **optional** enrichment path
-- Respect site ToS / robots; prefer rate limits; do **not** enable in production cron by default
-- Best for Elo ratings and advanced shot/xG where licensed APIs are missing
-
-### [statsbomb/open-data](https://github.com/statsbomb/open-data) (Hudl/StatsBomb)
-
-Open event-level JSON for selected competitions/seasons.
-
-- Wired under `python/ingestion/statsbomb_open.py`
-- Cite **StatsBomb** when publishing analysis (see their README / media pack)
-- Excellent for model feature engineering — **not** a live scores feed
-- Coverage is selective (not all top-5 matchweeks)
-
-## Ingest flow
-
-```
-API-Football ─┐
-football-data ┼─► normalize DTOs ─► data/raw/{source}/… ─► (later) Postgres upsert
-soccerdata*  ─┤
-StatsBomb*   ─┘
-* optional / research
-```
-
-Run from repo:
+## Full ingest
 
 ```bash
-# Node dual-source pull (writes data/raw)
-cd apps/web
-npm run ingest
+# From repo root — runs Node (AF + FD crosswalk) then Python (soccerdata + StatsBomb)
+npm run ingest:all
 
-# Optional Python enrichment
-cd python
-pip install -e .
-python -m ingestion.statsbomb_open --list-competitions
+# Or stepwise:
+cd apps/web && npm run ingest -- --max-jobs=6
+cd python && python -m ingestion.run_all
 ```
 
-Protected HTTP trigger (needs `CRON_SECRET`):
+Protected HTTP (API keys + operational data only):
 
-`POST /api/admin/ingest` with header `Authorization: Bearer $CRON_SECRET`
+`POST /api/admin/ingest` with `Authorization: Bearer $CRON_SECRET`
+
+## Attribution
+
+- StatsBomb open-data: cite **StatsBomb** when publishing ([media pack](https://statsbomb.com/media-pack/))
+- soccerdata scrapers: respect upstream site ToS / rate limits; we throttle between calls

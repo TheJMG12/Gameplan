@@ -1,27 +1,26 @@
 # Gameplan
 
-Soccer data hub for the top 5 European leagues — ingest, correlate, analyze, compare, predict, and follow news.
+Soccer data hub — ingest, correlate, analyze, compare, predict, and follow news.
 
 ## Status
 
-Decisions locked for stack, seasons, auth, and **Night Match** visual. Add API keys to start live ingest.
+Stack, seasons, auth, **Night Match** visual, and **non-overlapping multi-source ingest** are locked.
 
-See **[docs/PLAN.md](docs/PLAN.md)**.
+See **[docs/PLAN.md](docs/PLAN.md)** and **[docs/DATA_SOURCES.md](docs/DATA_SOURCES.md)**.
 
-## Top 5 leagues · UEFA · World Cup · last 3 club seasons
+## Competitions
 
 Premier League · La Liga · Bundesliga · Serie A · Ligue 1  
 UEFA Champions League · Europa League · Conference League  
 FIFA World Cup (2022, 2026)  
-Club seasons (start years): **2023, 2024, 2025**
+Club seasons: **2023, 2024, 2025**
 
 ## Stack
 
 - **App:** Next.js (App Router) + TypeScript + Tailwind
 - **Auth:** Clerk
 - **Data:** Neon Postgres, Upstash Redis
-- **Jobs / ML:** Python (`python/`) + Node ingest (`npm run ingest`)
-- **Sources:** API-Football + football-data.org (+ optional soccerdata / StatsBomb open-data)
+- **Ingest:** Node (API-Football + football-data crosswalk) + Python (soccerdata + StatsBomb) — **all required**
 
 ## Docs
 
@@ -29,9 +28,9 @@ Club seasons (start years): **2023, 2024, 2025**
 |---|---|
 | [docs/PLAN.md](docs/PLAN.md) | Product vision, architecture, phases |
 | [docs/DECISIONS.md](docs/DECISIONS.md) | Architecture decision records |
-| [docs/API_KEYS.md](docs/API_KEYS.md) | **Where to get API tokens** |
-| [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) | Multi-source ingest map |
-| [docs/VISUAL_DIRECTION.md](docs/VISUAL_DIRECTION.md) | Design options (Night Match locked) |
+| [docs/API_KEYS.md](docs/API_KEYS.md) | Where to get API tokens |
+| [docs/DATA_SOURCES.md](docs/DATA_SOURCES.md) | **Authority matrix (no overlap)** |
+| [docs/VISUAL_DIRECTION.md](docs/VISUAL_DIRECTION.md) | Night Match |
 | [AGENTS.md](AGENTS.md) | Guidance for Cursor agents |
 
 ## Run locally
@@ -43,13 +42,18 @@ npm install
 npm run dev
 ```
 
-Dual-source ingest (writes `data/raw/…`):
+## Full ingest (recommended)
 
 ```bash
-cd apps/web
-npm run ingest -- --max-jobs=4 --codes=PL,CL,WC
+# From repo root — operational APIs + soccerdata + StatsBomb
+npm run ingest:all
+
+# Smaller operational smoke test first:
+cd apps/web && npm run ingest -- --max-jobs=4 --codes=PL,CL,WC
 ```
+
+Writes under `data/raw/{api-football|football-data|soccerdata|statsbomb}/…` with **one owner per dataset**.
 
 ## App
 
-Phase 0+ lives in `apps/web` (Next.js). Visual: **Night Match**.
+Lives in `apps/web`. Visual: **Night Match**.

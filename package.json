@@ -9,6 +9,7 @@
     "build": "npm run build --workspace=web",
     "lint": "npm run lint --workspace=web",
     "start": "npm run start --workspace=web",
-    "ingest": "npm run ingest --workspace=web"
+    "ingest": "npm run ingest --workspace=web",
+    "ingest:all": "bash scripts/ingest_all.sh"
   }
 }

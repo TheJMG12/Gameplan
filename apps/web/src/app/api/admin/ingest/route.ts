@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getEnv } from "@/lib/env";
-import { runDualSourceIngest } from "@/lib/services/ingest";
+import { runOperationalIngest } from "@/lib/services/ingest";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   };
 
   try {
-    const result = await runDualSourceIngest({
+    const result = await runOperationalIngest({
       sources: body.sources,
       competitionCodes: body.competitionCodes,
       seasons: body.seasons,
