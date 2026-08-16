@@ -13,7 +13,8 @@ export const TeamRefSchema = z.object({
   id: z.string(),
   name: z.string(),
   shortName: z.string().optional(),
-  crestUrl: z.string().url().optional().or(z.literal("")),
+  // Logos from APIs are usually URLs, but tolerate empty/missing/non-URL values.
+  crestUrl: z.string().optional().default(""),
 });
 
 export const FixtureSchema = z.object({

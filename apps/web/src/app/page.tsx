@@ -3,7 +3,7 @@ import { LeaguePicker } from "@/components/LeaguePicker";
 import { COMPETITIONS } from "@/lib/domain/leagues";
 
 const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1522778119026-d647f0596c20?auto=format&fit=crop&w=2400&q=80";
+  "https://images.unsplash.com/photo-1672634443106-e15e48aea8e1?auto=format&fit=crop&w=2400&q=80";
 
 export default function HomePage() {
   const premier = COMPETITIONS.find((c) => c.code === "PL") ?? COMPETITIONS[0];
@@ -14,7 +14,8 @@ export default function HomePage() {
         <div
           className="ambient-light absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${HERO_IMAGE})` }}
-          aria-hidden
+          role="img"
+          aria-label="FC Barcelona Camp Nou stadium"
         />
         <div
           className="absolute inset-0"

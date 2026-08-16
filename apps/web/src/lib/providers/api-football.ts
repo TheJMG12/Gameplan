@@ -8,6 +8,36 @@ const BASE_URL = "https://v3.football.api-sports.io";
 type ApiFootballResponse<T> = {
   response: T;
   errors?: Record<string, string> | string[];
+  results?: number;
+};
+
+type RawFixture = {
+  fixture: {
+    id: number;
+    date: string;
+    status: { short?: string };
+  };
+  league: { round?: string };
+  teams: {
+    home: { id: number; name: string; logo?: string | null };
+    away: { id: number; name: string; logo?: string | null };
+  };
+  goals: { home: number | null; away: number | null };
+};
+
+type RawStandingRow = {
+  rank: number;
+  team: { id: number; name: string; logo?: string | null };
+  points: number;
+  goalsDiff: number;
+  form?: string;
+  all: {
+    played: number;
+    win: number;
+    draw: number;
+    lose: number;
+    goals: { for: number; against: number };
+  };
 };
 
 async function apiFootballFetch<T>(
@@ -23,15 +53,19 @@ async function apiFootballFetch<T>(
     url.searchParams.set(key, String(value));
   }
 
+  const key = getEnv().apiFootballKey.trim();
   const response = await fetch(url, {
     headers: {
-      "x-apisports-key": getEnv().apiFootballKey,
+      "x-apisports-key": key,
+      // Also accepted when the key was issued via RapidAPI dashboard copies
+      "x-rapidapi-key": key,
     },
-    next: { revalidate: 3600 },
+    cache: "no-store",
   });
 
   if (!response.ok) {
-    throw new Error(`API-Football ${path} failed: ${response.status}`);
+    const body = await response.text().catch(() => "");
+    throw new Error(`API-Football ${path} failed: ${response.status} ${body.slice(0, 200)}`);
   }
 
   const remaining = response.headers.get("x-ratelimit-requests-remaining");
@@ -74,6 +108,33 @@ function mapStatus(short: string | undefined): Fixture["status"] {
   }
 }
 
+function mapFixture(item: RawFixture, competition: CompetitionDefinition, season: number): Fixture | null {
+  const parsed = FixtureSchema.safeParse({
+    id: `af-${item.fixture.id}`,
+    leagueCode: competition.code,
+    season,
+    utcDate: item.fixture.date,
+    status: mapStatus(item.fixture.status.short),
+    matchday: Number(item.league.round?.match(/\d+/)?.[0] ?? NaN) || null,
+    home: {
+      id: `af-${item.teams.home.id}`,
+      name: item.teams.home.name,
+      crestUrl: item.teams.home.logo ?? "",
+    },
+    away: {
+      id: `af-${item.teams.away.id}`,
+      name: item.teams.away.name,
+      crestUrl: item.teams.away.logo ?? "",
+    },
+    score: {
+      home: item.goals.home,
+      away: item.goals.away,
+    },
+    source: "api-football",
+  });
+  return parsed.success ? parsed.data : null;
+}
+
 export async function fetchStandingsFromApiFootball(
   competition: CompetitionDefinition,
   season: number,
@@ -81,27 +142,14 @@ export async function fetchStandingsFromApiFootball(
   const response = await apiFootballFetch<
     Array<{
       league: {
-        standings: Array<
-          Array<{
-            rank: number;
-            team: { id: number; name: string; logo?: string };
-            points: number;
-            goalsDiff: number;
-            form?: string;
-            all: {
-              played: number;
-              win: number;
-              draw: number;
-              lose: number;
-              goals: { for: number; against: number };
-            };
-          }>
-        >;
+        standings: Array<Array<RawStandingRow>>;
       };
     }>
   >("/standings", { league: competition.apiFootballId, season });
 
-  const table = response[0]?.league.standings[0] ?? [];
+  // Domestic leagues: one TOTAL table. Cups: multiple groups — flatten for now.
+  const blocks = response[0]?.league.standings ?? [];
+  const table = blocks.flat();
 
   return StandingsSchema.parse({
     leagueCode: competition.code,
@@ -128,49 +176,54 @@ export async function fetchStandingsFromApiFootball(
   });
 }
 
+/** Display path: recent + upcoming only (saves quota vs full-season dump). */
 export async function fetchFixturesFromApiFootball(
   competition: CompetitionDefinition,
   season: number,
 ): Promise<Fixture[]> {
-  const response = await apiFootballFetch<
-    Array<{
-      fixture: {
-        id: number;
-        date: string;
-        status: { short?: string };
-      };
-      league: { round?: string };
-      teams: {
-        home: { id: number; name: string; logo?: string };
-        away: { id: number; name: string; logo?: string };
-      };
-      goals: { home: number | null; away: number | null };
-    }>
-  >("/fixtures", { league: competition.apiFootballId, season });
+  try {
+    const [upcoming, recent] = await Promise.all([
+      apiFootballFetch<RawFixture[]>("/fixtures", {
+        league: competition.apiFootballId,
+        season,
+        next: 15,
+      }),
+      apiFootballFetch<RawFixture[]>("/fixtures", {
+        league: competition.apiFootballId,
+        season,
+        last: 15,
+      }),
+    ]);
 
-  return response.map((item) =>
-    FixtureSchema.parse({
-      id: `af-${item.fixture.id}`,
-      leagueCode: competition.code,
-      season,
-      utcDate: item.fixture.date,
-      status: mapStatus(item.fixture.status.short),
-      matchday: Number(item.league.round?.match(/\d+/)?.[0] ?? NaN) || null,
-      home: {
-        id: `af-${item.teams.home.id}`,
-        name: item.teams.home.name,
-        crestUrl: item.teams.home.logo ?? "",
-      },
-      away: {
-        id: `af-${item.teams.away.id}`,
-        name: item.teams.away.name,
-        crestUrl: item.teams.away.logo ?? "",
-      },
-      score: {
-        home: item.goals.home,
-        away: item.goals.away,
-      },
-      source: "api-football",
-    }),
-  );
+    const seen = new Set<string>();
+    const fixtures: Fixture[] = [];
+    for (const item of [...recent, ...upcoming]) {
+      const mapped = mapFixture(item, competition, season);
+      if (!mapped || seen.has(mapped.id)) continue;
+      seen.add(mapped.id);
+      fixtures.push(mapped);
+    }
+
+    fixtures.sort((a, b) => a.utcDate.localeCompare(b.utcDate));
+    if (fixtures.length > 0) return fixtures;
+  } catch (error) {
+    console.warn("[api-football] next/last fixtures failed, falling back to season dump", error);
+  }
+
+  return fetchAllFixturesFromApiFootball(competition, season);
+}
+
+/** Full-season dump for ingest jobs. */
+export async function fetchAllFixturesFromApiFootball(
+  competition: CompetitionDefinition,
+  season: number,
+): Promise<Fixture[]> {
+  const response = await apiFootballFetch<RawFixture[]>("/fixtures", {
+    league: competition.apiFootballId,
+    season,
+  });
+
+  return response
+    .map((item) => mapFixture(item, competition, season))
+    .filter((fixture): fixture is Fixture => fixture !== null);
 }
