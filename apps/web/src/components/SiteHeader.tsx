@@ -7,9 +7,18 @@ export function SiteHeader() {
         <Link href="/" className="font-[family-name:var(--font-display)] text-lg tracking-[0.18em] text-brand">
           GAMEPLAN
         </Link>
-        <nav className="flex items-center gap-5 text-sm text-muted">
+        <nav className="flex items-center gap-4 text-sm text-muted sm:gap-5">
           <Link href="/leagues/premier-league" className="transition-colors hover:text-brand">
             Leagues
+          </Link>
+          <Link
+            href="/leagues/champions-league"
+            className="hidden transition-colors hover:text-brand sm:inline"
+          >
+            UEFA
+          </Link>
+          <Link href="/leagues/world-cup" className="hidden transition-colors hover:text-brand sm:inline">
+            World Cup
           </Link>
           <span className="rounded-full border border-line px-3 py-1 text-xs uppercase tracking-[0.14em] text-muted">
             Sign in soon

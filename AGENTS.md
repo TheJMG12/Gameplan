@@ -10,11 +10,11 @@ Soccer data hub for the top 5 European leagues: ingest, correlate, analyze, comp
 
 ## Product constraints
 
-- **Top 5 only until explicitly expanded:** Premier League, La Liga, Bundesliga, Serie A, Ligue 1
-- **Last 3 seasons:** start years `2023,2024,2025` (`INGEST_SEASONS`)
+- **Top 5 + UEFA + World Cup:** PL/PD/BL1/SA/FL1, CL/EL/ECL, WC
+- **Last 3 club seasons:** start years `2023,2024,2025` (`INGEST_SEASONS`); WC years `2022,2026`
 - **Data quality before ML:** fixtures/standings/news/compare ship before ensemble models
 - **Canonical IDs:** never assume provider IDs are global; use `external_ids` mapping
-- **No scraping by default:** prefer licensed/free APIs; respect ToS and rate limits
+- **No scraping redundancy:** soccerdata is **required** but only for Elo/xG/advanced/SoFIFA slices that APIs do not own; StatsBomb owns events. See `docs/DATA_SOURCES.md`.
 - **Secrets:** never commit API keys; use `.env` / Vercel env from `.env.example`
 - **Auth:** Clerk — public browse OK; saves/prefs/admin require sign-in
 
@@ -23,10 +23,11 @@ Soccer data hub for the top 5 European leagues: ingest, correlate, analyze, comp
 - Next.js App Router + TypeScript + Tailwind (UI + BFF)
 - Clerk auth
 - Neon Postgres + Upstash Redis
-- Python under `python/` for ingestion batch jobs and prediction training
+- Python under `python/` for soccerdata + StatsBomb (required ingest owners)
 - Deploy on Vercel
+- Full ingest: `npm run ingest:all`
 - API keys guide: `docs/API_KEYS.md`
-- Visual options: `docs/VISUAL_DIRECTION.md` — **Night Match (A) accepted**
+- Visual: Night Match (A)
 - App lives in `apps/web`
 
 If a change conflicts with `docs/PLAN.md`, update the plan or add an ADR in `docs/DECISIONS.md`.

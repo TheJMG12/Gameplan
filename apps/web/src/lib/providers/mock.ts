@@ -1,16 +1,13 @@
-import type { LeagueCode } from "@/lib/domain/leagues";
+import type { CompetitionCode } from "@/lib/domain/leagues";
 import type { Fixture, Standings } from "@/lib/domain/types";
 
-const CRESTS: Record<string, string> = {};
-
 function team(id: string, name: string, shortName: string) {
-  return { id, name, shortName, crestUrl: CRESTS[id] ?? "" };
+  return { id, name, shortName, crestUrl: "" };
 }
 
-/** Deterministic placeholder data so the UI works before provider keys land. */
 type ClubTriple = readonly [id: string, name: string, shortName: string];
 
-const CLUBS_BY_LEAGUE: Record<LeagueCode, readonly ClubTriple[]> = {
+const CLUBS_BY_COMPETITION: Record<CompetitionCode, readonly ClubTriple[]> = {
   PL: [
     ["pl-1", "Arsenal", "ARS"],
     ["pl-2", "Manchester City", "MCI"],
@@ -46,10 +43,39 @@ const CLUBS_BY_LEAGUE: Record<LeagueCode, readonly ClubTriple[]> = {
     ["fl-4", "Lille", "LIL"],
     ["fl-5", "Lyon", "OL"],
   ],
+  CL: [
+    ["cl-1", "Real Madrid", "RMA"],
+    ["cl-2", "Manchester City", "MCI"],
+    ["cl-3", "Bayern Munich", "BAY"],
+    ["cl-4", "Inter", "INT"],
+    ["cl-5", "PSG", "PSG"],
+  ],
+  EL: [
+    ["el-1", "Roma", "ROM"],
+    ["el-2", "Liverpool", "LIV"],
+    ["el-3", "Bayer Leverkusen", "B04"],
+    ["el-4", "Atalanta", "ATA"],
+    ["el-5", "West Ham", "WHU"],
+  ],
+  ECL: [
+    ["ecl-1", "Olympiacos", "OLY"],
+    ["ecl-2", "Fiorentina", "FIO"],
+    ["ecl-3", "Club Brugge", "CLU"],
+    ["ecl-4", "Aston Villa", "AVL"],
+    ["ecl-5", "PAOK", "PAOK"],
+  ],
+  WC: [
+    ["wc-1", "Argentina", "ARG"],
+    ["wc-2", "France", "FRA"],
+    ["wc-3", "Brazil", "BRA"],
+    ["wc-4", "England", "ENG"],
+    ["wc-5", "Spain", "ESP"],
+  ],
 };
 
-export function mockStandings(leagueCode: LeagueCode, season: number): Standings {
-  const clubs = CLUBS_BY_LEAGUE[leagueCode];
+/** Deterministic placeholder data so the UI works before provider keys land. */
+export function mockStandings(leagueCode: CompetitionCode, season: number): Standings {
+  const clubs = CLUBS_BY_COMPETITION[leagueCode];
 
   return {
     leagueCode,
@@ -80,7 +106,7 @@ export function mockStandings(leagueCode: LeagueCode, season: number): Standings
   };
 }
 
-export function mockFixtures(leagueCode: LeagueCode, season: number): Fixture[] {
+export function mockFixtures(leagueCode: CompetitionCode, season: number): Fixture[] {
   const standings = mockStandings(leagueCode, season).table;
   const home = standings[0]?.team;
   const away = standings[1]?.team;
@@ -122,4 +148,14 @@ export function mockFixtures(leagueCode: LeagueCode, season: number): Fixture[] 
       source: "mock",
     },
   ];
+}
+
+export function emptyStandings(leagueCode: CompetitionCode, season: number): Standings {
+  return {
+    leagueCode,
+    season,
+    updatedAt: new Date().toISOString(),
+    source: "mock",
+    table: [],
+  };
 }

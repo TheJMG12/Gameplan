@@ -1,5 +1,5 @@
 import { getEnv, hasFootballDataToken } from "@/lib/env";
-import type { LeagueDefinition } from "@/lib/domain/leagues";
+import type { CompetitionDefinition } from "@/lib/domain/leagues";
 import type { Fixture, Standings } from "@/lib/domain/types";
 import { FixtureSchema, StandingsSchema } from "@/lib/domain/types";
 
@@ -50,10 +50,18 @@ function mapStatus(status: string | undefined): Fixture["status"] {
   }
 }
 
+function requireFootballDataCode(competition: CompetitionDefinition): string {
+  if (!competition.footballDataCode) {
+    throw new Error(`${competition.code} has no football-data.org mapping`);
+  }
+  return competition.footballDataCode;
+}
+
 export async function fetchStandingsFromFootballData(
-  league: LeagueDefinition,
+  competition: CompetitionDefinition,
   season: number,
 ): Promise<Standings> {
+  const code = requireFootballDataCode(competition);
   const data = await footballDataFetch<{
     standings: Array<{
       type: string;
@@ -71,12 +79,15 @@ export async function fetchStandingsFromFootballData(
         form?: string;
       }>;
     }>;
-  }>(`/competitions/${league.footballDataCode}/standings?season=${season}`);
+  }>(`/competitions/${code}/standings?season=${season}`);
 
-  const table = data.standings.find((block) => block.type === "TOTAL")?.table ?? [];
+  const table =
+    data.standings.find((block) => block.type === "TOTAL")?.table ??
+    data.standings[0]?.table ??
+    [];
 
   return StandingsSchema.parse({
-    leagueCode: league.code,
+    leagueCode: competition.code,
     season,
     updatedAt: new Date().toISOString(),
     source: "football-data",
@@ -102,9 +113,10 @@ export async function fetchStandingsFromFootballData(
 }
 
 export async function fetchFixturesFromFootballData(
-  league: LeagueDefinition,
+  competition: CompetitionDefinition,
   season: number,
 ): Promise<Fixture[]> {
+  const code = requireFootballDataCode(competition);
   const data = await footballDataFetch<{
     matches: Array<{
       id: number;
@@ -117,12 +129,12 @@ export async function fetchFixturesFromFootballData(
         fullTime: { home: number | null; away: number | null };
       };
     }>;
-  }>(`/competitions/${league.footballDataCode}/matches?season=${season}`);
+  }>(`/competitions/${code}/matches?season=${season}`);
 
   return data.matches.map((match) =>
     FixtureSchema.parse({
       id: `fd-${match.id}`,
-      leagueCode: league.code,
+      leagueCode: competition.code,
       season,
       utcDate: match.utcDate,
       status: mapStatus(match.status),
