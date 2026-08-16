@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --bg: #07140f;
@@ -12,19 +14,6 @@
   --danger: #ff5c5c;
   --background: var(--bg);
   --foreground: var(--brand);
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-brand: var(--brand);
-  --color-accent: var(--accent);
-  --color-muted: var(--muted);
-  --color-line: var(--line);
-  --color-surface: var(--surface);
-  --color-bg-deep: var(--bg-deep);
-  --font-sans: var(--font-body);
-  --font-display: var(--font-display);
 }
 
 * {
