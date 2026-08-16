@@ -1,11 +1,10 @@
 import {
-  currentSeasonStartYear,
   defaultSeasonFor,
   getCompetitionBySlug,
   type CompetitionDefinition,
 } from "@/lib/domain/leagues";
 import type { Fixture, Standings } from "@/lib/domain/types";
-import { hasApiFootballKey, hasFootballDataToken } from "@/lib/env";
+import { hasApiFootballKey, hasFootballDataToken, providerStatus } from "@/lib/env";
 import {
   fetchFixturesFromApiFootball,
   fetchStandingsFromApiFootball,
@@ -23,19 +22,24 @@ export type LeagueBundle = {
   fixtures: Fixture[];
   usingMock: boolean;
   sourcesAttempted: string[];
+  errors: string[];
+  keysConfigured: ReturnType<typeof providerStatus>;
 };
 
 async function loadStandings(
   competition: CompetitionDefinition,
   season: number,
   attempted: string[],
+  errors: string[],
 ): Promise<Standings> {
   if (hasApiFootballKey()) {
     attempted.push("api-football");
     try {
       return await fetchStandingsFromApiFootball(competition, season);
     } catch (error) {
-      console.warn("[standings] api-football failed", error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("[standings] api-football failed", message);
+      errors.push(`standings/api-football: ${message}`);
     }
   }
 
@@ -44,11 +48,16 @@ async function loadStandings(
     try {
       return await fetchStandingsFromFootballData(competition, season);
     } catch (error) {
-      console.warn("[standings] football-data failed", error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("[standings] football-data failed", message);
+      errors.push(`standings/football-data: ${message}`);
     }
   }
 
-  // Cups / WC may lack a flat table; prefer empty over misleading mock for non-domestic.
+  if (!hasApiFootballKey() && !hasFootballDataToken()) {
+    errors.push("No API keys found in env (API_FOOTBALL_KEY / FOOTBALL_DATA_API_TOKEN)");
+  }
+
   if (competition.kind !== "domestic") {
     return emptyStandings(competition.code, season);
   }
@@ -60,13 +69,16 @@ async function loadFixtures(
   competition: CompetitionDefinition,
   season: number,
   attempted: string[],
+  errors: string[],
 ): Promise<Fixture[]> {
   if (hasApiFootballKey()) {
     attempted.push("api-football");
     try {
       return await fetchFixturesFromApiFootball(competition, season);
     } catch (error) {
-      console.warn("[fixtures] api-football failed", error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("[fixtures] api-football failed", message);
+      errors.push(`fixtures/api-football: ${message}`);
     }
   }
 
@@ -75,7 +87,9 @@ async function loadFixtures(
     try {
       return await fetchFixturesFromFootballData(competition, season);
     } catch (error) {
-      console.warn("[fixtures] football-data failed", error);
+      const message = error instanceof Error ? error.message : String(error);
+      console.warn("[fixtures] football-data failed", message);
+      errors.push(`fixtures/football-data: ${message}`);
     }
   }
 
@@ -91,10 +105,11 @@ export async function getLeagueBundle(
 
   const resolvedSeason = season ?? defaultSeasonFor(competition);
   const sourcesAttempted: string[] = [];
+  const errors: string[] = [];
 
   const [standings, fixtures] = await Promise.all([
-    loadStandings(competition, resolvedSeason, sourcesAttempted),
-    loadFixtures(competition, resolvedSeason, sourcesAttempted),
+    loadStandings(competition, resolvedSeason, sourcesAttempted, errors),
+    loadFixtures(competition, resolvedSeason, sourcesAttempted, errors),
   ]);
 
   return {
@@ -104,7 +119,7 @@ export async function getLeagueBundle(
     fixtures,
     usingMock: standings.source === "mock" || fixtures.some((fixture) => fixture.source === "mock"),
     sourcesAttempted: [...new Set(sourcesAttempted)],
+    errors,
+    keysConfigured: providerStatus(),
   };
 }
-
-export { currentSeasonStartYear };

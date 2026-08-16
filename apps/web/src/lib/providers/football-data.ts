@@ -12,9 +12,9 @@ async function footballDataFetch<T>(path: string): Promise<T> {
 
   const response = await fetch(`${BASE_URL}${path}`, {
     headers: {
-      "X-Auth-Token": getEnv().footballDataToken,
+      "X-Auth-Token": getEnv().footballDataToken.trim(),
     },
-    next: { revalidate: 3600 },
+    cache: "no-store",
   });
 
   if (!response.ok) {

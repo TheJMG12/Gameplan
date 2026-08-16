@@ -10,6 +10,8 @@ import {
 } from "@/lib/domain/leagues";
 import { getLeagueBundle } from "@/lib/services/league-data";
 
+export const dynamic = "force-dynamic";
+
 type LeaguePageProps = {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ season?: string }>;
@@ -45,6 +47,12 @@ export default async function LeaguePage({ params, searchParams }: LeaguePagePro
       ? String(bundle.season)
       : `${bundle.season}/${bundle.season + 1}`;
 
+  const sourceLabel = bundle.usingMock
+    ? "mock data"
+    : bundle.standings.source !== "mock"
+      ? bundle.standings.source
+      : bundle.fixtures.find((f) => f.source !== "mock")?.source ?? "live";
+
   return (
     <main className="relative min-h-screen bg-[linear-gradient(180deg,#07140f_0%,#020403_100%)] pt-24">
       <div className="mx-auto w-full max-w-6xl px-5 pb-20 sm:px-8">
@@ -55,8 +63,30 @@ export default async function LeaguePage({ params, searchParams }: LeaguePagePro
           </h1>
           <p className="mt-3 max-w-2xl text-sm text-muted">
             {competition.seasonMode === "tournament" ? "Tournament" : "Season"} {seasonLabel}
-            {bundle.usingMock ? " · mock / empty until API keys respond" : ""}
+            {" · "}
+            source: {sourceLabel}
           </p>
+          {bundle.usingMock && (
+            <div className="mt-4 border border-accent/40 bg-accent/10 px-4 py-3 text-sm text-brand">
+              <p className="font-medium text-accent">Showing filler data</p>
+              <p className="mt-1 text-muted">
+                Keys loaded: API-Football{" "}
+                {bundle.keysConfigured.apiFootball ? "yes" : "no"} · football-data.org{" "}
+                {bundle.keysConfigured.footballData ? "yes" : "no"}
+              </p>
+              {bundle.errors.length > 0 && (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-muted">
+                  {bundle.errors.slice(0, 4).map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              )}
+              <p className="mt-2 text-xs text-muted">
+                Put keys in <code className="text-brand">apps/web/.env.local</code>, restart{" "}
+                <code className="text-brand">npm run dev</code>, then refresh.
+              </p>
+            </div>
+          )}
         </div>
 
         <div className="mb-10 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">

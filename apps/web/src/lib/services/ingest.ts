@@ -7,7 +7,7 @@ import {
 } from "@/lib/domain/leagues";
 import { getEnv, hasApiFootballKey, hasFootballDataToken } from "@/lib/env";
 import {
-  fetchFixturesFromApiFootball,
+  fetchAllFixturesFromApiFootball,
   fetchStandingsFromApiFootball,
 } from "@/lib/providers/api-football";
 
@@ -81,7 +81,7 @@ async function ingestOperationalFromApiFootball(
   await sleep(1200);
 
   try {
-    const fixtures = await fetchFixturesFromApiFootball(competition, season);
+    const fixtures = await fetchAllFixturesFromApiFootball(competition, season);
     const rawPath = await writeJson(
       ["api-football", competition.code, String(season), "fixtures.json"],
       fixtures,
