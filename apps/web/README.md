@@ -15,3 +15,14 @@ npm run dev
 ```
 
 Without `API_FOOTBALL_KEY` / `FOOTBALL_DATA_API_TOKEN`, league pages serve mock standings/fixtures.
+
+## Ingest both APIs
+
+```bash
+# keys in .env.local
+npm run ingest -- --max-jobs=4 --codes=PL,CL,WC
+```
+
+Writes JSON under repo `data/raw/{api-football|football-data}/…`.
+
+Optional Python enrichment: see `../../docs/DATA_SOURCES.md`.
